@@ -24,23 +24,23 @@ MapControl = function (opts) {
 
 MapControl.prototype._init = function () {
     var me = this;
+    var w = me.opts.width;
+    w = typeof w === "string" ? w : w + "px";
+    var h = me.opts.height;
+    h = typeof h === "string"? h : h + "px";
 
     me.el = $("#" + me.opts.target).css({
-        width: me.opts.width + "px",
-        height: me.opts.height + "px"
+        width: w,
+        height: h
     }).addClass("map-control");
-
-    me.olmapId = uuid();
-    me.bkmapId = uuid();
-
-    me.olmapEl = $("<div>").attr("id", me.olmapId).appendTo(me.el).css({
-        "z-index": 2
-    }).addClass("map-layer");
-
-    me.bkmapEl = $("<div>").attr("id", me.bkmapId).appendTo(me.el).css({
-        "z-index": 1
-    }).addClass("map-layer");
-
+    
+    me.olmapEl = $("<div>").attr("id", uuid()).appendTo(me.el).addClass("map-layer").css({
+            "z-index": 100
+        });
+    
+    me.bkmapEl = $("<div>").attr("id", uuid()).appendTo(me.el).addClass("map-layer").css({
+            "z-index": 1
+        });
 
     var newcenter = ol.proj.transform(me.opts.center, "EPSG:4326", "EPSG:3857");
 
@@ -48,7 +48,7 @@ MapControl.prototype._init = function () {
         layers: [
 
         ],
-        target: me.olmapId,
+        target: me.olmapEl.attr("id"),
         controls: ol.control.defaults({
             attributionOptions: {
                 collapsible: false
@@ -62,22 +62,24 @@ MapControl.prototype._init = function () {
 
     $(".ol-attribution").remove();
 
+    me.olmap.getView().on("change", function () {
+        me.updateBackgroundMap();
+    });
+    me.olmap.on("pointerdrag", function () {
+        me.updateBackgroundMap();
+    });
+        
     me.setBackgroundMap(me.opts.backgroundMapName);
-    var bkmap = me.opts.backgroundMapName;
-
-    me.olmap.getView().on("change", function (e) {
-        me.updateBackgroundMap();
-    });
-    me.olmap.on("pointerdrag", function (e) {
-        me.updateBackgroundMap();
-    });
-
 };
 
 
 MapControl.prototype.setBackgroundMap = function (bkname) {
     var me = this;
-    //me.destroyBackgroundMap();
+    if (me.bkmap && me.opts.backgroundMapName === bkname) {
+        return;
+    }
+   me.destroyBackgroundMap();
+   me.opts.backgroundMapName = bkname;
 
     if (bkname === "NOTHING") {
 
@@ -86,7 +88,7 @@ MapControl.prototype.setBackgroundMap = function (bkname) {
             source: new ol.source.OSM()
         });
         me.olmap.getLayers().push(me.backgroundMap);
-    } else if (bkname === "GOOGLE_SATELLITE" || "GOOGLE_HYBRID" || "GOOGLE_ROADMAP" || "GOOGLE_TERRAIN") {
+    } else if (bkname === "GOOGLE_SATELLITE" || bkname === "GOOGLE_HYBRID" || bkname === "GOOGLE_ROADMAP" || bkname === "GOOGLE_TERRAIN") {
         $.getScript("https://www.google.com/maps/api/js?key=AIzaSyAFplsFjJAIKV3qa3AgMRNopW_rduJVX38", function () {
             me.initGoogleMap();
         });
@@ -125,13 +127,11 @@ MapControl.prototype.destroyBackgroundMap = function () {
     } else if (bkname === "OSM") {
         me.olmap.removeLayer(me.backgroundMap);
     } else {
-        me.bkmapEl.remove();
+        me.bkmapEl.remove();        
+        me.bkmapEl = $("<div>").attr("id", uuid()).appendTo(me.el).addClass("map-layer").css({
+            "z-index": 1
+        });
     }
-//    } else if (bkname === "GOOGLE_SATELLITE") {
-//        me.bkmapEl.remove();
-//    } else if (bkname === "GOOGLE_HYBID") {
-//
-//    }
 };
 
 
@@ -139,7 +139,7 @@ MapControl.prototype.initAMap = function () {
     var me = this;
 
     var LJCenter = LJTransform.wgs84togcj02(me.opts.center[0], me.opts.center[1]);
-    me.bkmap = new AMap.Map(document.getElementById(me.bkmapId), {
+    me.bkmap = new AMap.Map(document.getElementById(me.bkmapEl.attr("id")), {
         resizeEnable: true,
         zoom: me.opts.zoom,
         center: LJCenter
@@ -149,7 +149,7 @@ MapControl.prototype.initAMap = function () {
 MapControl.prototype.initBMap = function () {
     var me = this;
     var LJCenter = LJTransform.wgs84tobd09(me.opts.center[0], me.opts.center[1]);
-    me.bkmap = new BMap.Map(document.getElementById(me.bkmapId));
+    me.bkmap = new BMap.Map(document.getElementById(me.bkmapEl.attr("id")));
     var point = new BMap.Point(LJCenter[0], LJCenter[1]);
     me.bkmap.centerAndZoom(point, me.opts.zoom);
 };
@@ -158,7 +158,7 @@ MapControl.prototype.initBingMaps = function () {
     var me = this;
     //经测试发现Bing地图中国国内数据源采用gcj02加密，故需进行转换操作才可正常展示。
     var LJCenter = LJTransform.wgs84togcj02(me.opts.center[0], me.opts.center[1]);
-    me.bkmap = new Microsoft.Maps.Map(document.getElementById(me.bkmapId),
+    me.bkmap = new Microsoft.Maps.Map(document.getElementById(me.bkmapEl.attr("id")),
             {
                 credentials: 'AuaB5JrsBeJ256gk-WZ9EXbbXprgSgSLI9N-59Juc-Fa_sjFmXG8GgT9MLPqbJjo',
                 center: new Microsoft.Maps.Location(LJCenter[1], LJCenter[0]),
@@ -184,7 +184,7 @@ MapControl.prototype.initGoogleMap = function () {
     } else if (me.opts.backgroundMapName === "GOOGLE_TERRAIN") {
         bktype = google.maps.MapTypeId.TERRAIN;
     }
-    me.bkmap = new google.maps.Map(document.getElementById(me.bkmapId), {
+    me.bkmap = new google.maps.Map(document.getElementById(me.bkmapEl.attr("id")), {
         zoom: me.opts.zoom,
         center: uluru,
         mapTypeId: bktype
@@ -199,7 +199,7 @@ MapControl.prototype.initGoogleMap = function () {
 MapControl.prototype.initQQMaps = function () {
     var me = this;
     var LJCenter = LJTransform.wgs84togcj02(me.opts.center[0], me.opts.center[1]);
-    me.bkmap = new qq.maps.Map(document.getElementById(me.bkmapId), {
+    me.bkmap = new qq.maps.Map(document.getElementById(me.bkmapEl.attr("id")), {
         center: new qq.maps.LatLng(LJCenter[1], LJCenter[0]),
         zoom: me.opts.zoom,
         mapTypeControl: false,
@@ -210,20 +210,27 @@ MapControl.prototype.initQQMaps = function () {
 
 MapControl.prototype.initTMap = function () {
     var me = this;
-    me.bkmap = new T.Map(document.getElementById(me.bkmapId), {
-        center: new T.LngLat(me.opts.center[0], me.opts.center[1]),
-        zoom: me.opts.zoom
-    });
+    
+    me.bkmap = new T.Map(document.getElementById(me.bkmapEl.attr("id")));
+    var center = new T.LngLat(me.opts.center[0], me.opts.center[1]);
+    me.bkmap.centerAndZoom(center, me.opts.zoom);
+//    me.bkmap = new T.Map(document.getElementById(me.bkmapEl.attr("id")), {
+//        center: new T.LngLat(me.opts.center[0], me.opts.center[1]),
+//        zoom: me.opts.zoom
+//    });
 }
 
 MapControl.prototype.updateBackgroundMap = function () {
     var me = this;
     var bkname = me.opts.backgroundMapName;
+    me.opts.center = ol.proj.transform(me.getCenter(), "EPSG:3857", "EPSG:4326");
+    me.opts.zoom = me.getZoom();
+    
     if (bkname === "NOTHING") {
 
     } else if (bkname === "OSM") {
         me.updateOSMMap();
-    } else if (bkname === "GOOGLE_SATELLITE" || "GOOGLE_HYBID" || "GOOGLE_ROADMAP" || "GOOGLE_TERRAIN") {
+    } else if (bkname === "GOOGLE_SATELLITE" || bkname === "GOOGLE_HYBID" || bkname === "GOOGLE_ROADMAP" || bkname === "GOOGLE_TERRAIN") {
         me.updateGoogleMap();
     } else if (bkname === "AMAP") {
         me.updateAMap();
@@ -236,6 +243,16 @@ MapControl.prototype.updateBackgroundMap = function () {
     } else if (bkname === "TMAP") {
         me.updateTMap();
     }
+};
+
+MapControl.prototype.getCenter = function () {
+    var me = this;
+    return me.olmap.getView().getCenter();
+};
+
+MapControl.prototype.getZoom = function () {
+    var me = this;
+    return me.olmap.getView().getZoom();
 };
 
 MapControl.prototype.updateAMap = function () {
@@ -272,11 +289,10 @@ MapControl.prototype.updateOSMMap = function () {
 
 MapControl.prototype.updateGoogleMap = function () {
     var me = this;
-    var v = me.olmap.getView();
-    var mycenter = v.getCenter();
+    var mycenter = me.getCenter();
     mycenter = ol.proj.transform(mycenter, "EPSG:3857", "EPSG:4326");
     me.bkmap.setOptions({
-        zoom: v.getZoom(),
+        zoom: me.getZoom(),
         center: {lng: mycenter[0], lat: mycenter[1]}
     });
 };
