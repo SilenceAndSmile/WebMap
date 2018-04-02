@@ -27,20 +27,20 @@ MapControl.prototype._init = function () {
     var w = me.opts.width;
     w = typeof w === "string" ? w : w + "px";
     var h = me.opts.height;
-    h = typeof h === "string"? h : h + "px";
+    h = typeof h === "string" ? h : h + "px";
 
     me.el = $("#" + me.opts.target).css({
         width: w,
         height: h
     }).addClass("map-control");
-    
+
     me.olmapEl = $("<div>").attr("id", uuid()).appendTo(me.el).addClass("map-layer").css({
-            "z-index": 100
-        });
-    
+        "z-index": 100
+    });
+
     me.bkmapEl = $("<div>").attr("id", uuid()).appendTo(me.el).addClass("map-layer").css({
-            "z-index": 1
-        });
+        "z-index": 1
+    });
 
     var newcenter = ol.proj.transform(me.opts.center, "EPSG:4326", "EPSG:3857");
 
@@ -57,7 +57,15 @@ MapControl.prototype._init = function () {
         view: new ol.View({
             center: newcenter,
             zoom: me.opts.zoom
-        })
+        }),
+        interactions: [
+            new ol.interaction.MouseWheelZoom({
+                constrainResolution: true
+            }),
+            new ol.interaction.DragPan({
+                kinetic: new ol.Kinetic(0, 100000, 1000)
+            })
+        ]
     });
 
     $(".ol-attribution").remove();
@@ -68,7 +76,7 @@ MapControl.prototype._init = function () {
     me.olmap.on("pointerdrag", function () {
         me.updateBackgroundMap();
     });
-        
+
     me.setBackgroundMap(me.opts.backgroundMapName);
 };
 
@@ -78,8 +86,8 @@ MapControl.prototype.setBackgroundMap = function (bkname) {
     if (me.bkmap && me.opts.backgroundMapName === bkname) {
         return;
     }
-   me.destroyBackgroundMap();
-   me.opts.backgroundMapName = bkname;
+    me.destroyBackgroundMap();
+    me.opts.backgroundMapName = bkname;
 
     if (bkname === "NOTHING") {
 
@@ -127,7 +135,7 @@ MapControl.prototype.destroyBackgroundMap = function () {
     } else if (bkname === "OSM") {
         me.olmap.removeLayer(me.backgroundMap);
     } else {
-        me.bkmapEl.remove();        
+        me.bkmapEl.remove();
         me.bkmapEl = $("<div>").attr("id", uuid()).appendTo(me.el).addClass("map-layer").css({
             "z-index": 1
         });
@@ -210,7 +218,7 @@ MapControl.prototype.initQQMaps = function () {
 
 MapControl.prototype.initTMap = function () {
     var me = this;
-    
+
     me.bkmap = new T.Map(document.getElementById(me.bkmapEl.attr("id")));
     var center = new T.LngLat(me.opts.center[0], me.opts.center[1]);
     me.bkmap.centerAndZoom(center, me.opts.zoom);
@@ -225,7 +233,7 @@ MapControl.prototype.updateBackgroundMap = function () {
     var bkname = me.opts.backgroundMapName;
     me.opts.center = ol.proj.transform(me.getCenter(), "EPSG:3857", "EPSG:4326");
     me.opts.zoom = me.getZoom();
-    
+
     if (bkname === "NOTHING") {
 
     } else if (bkname === "OSM") {
