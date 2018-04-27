@@ -5,15 +5,15 @@
     + 本程序中除谷歌地图包含四种地图类型(道路、卫星、复合、地形)和OpenStreetMap提供一种地图类型(道路)外，其余五种地图服务商的均包含两种地图类型(道路和卫星)。可根据需要在最上方工具条中进行切换。
     + 每种地图服务商的初始化坐标顺序与坐标加密(偏移)情况如下表所示：
 
-|     Type      | Center  |             坐标加密/偏移             |
-|:-------------:|:-------:|:-------------------------------------:|
-|     AMap      | Lng,Lat |           gcj02(火星坐标系)           |
-|     BMap      | Lng,Lat |   bd09(本质是在gcj02偏移之上再偏移)   |
-|   BingMaps    | Lat,Lng |           国内数据gcj02加密           |
-|    Google     | Lat,Lng | goole.com 无偏移; google.cn gcj02加密 |
-|    QQMaps     | Lat,Lng |               gcj02加密               |
-|     TMap      | Lng,Lat |              不加密(orz)              |
-| OpenStreetMap | Lng,Lat |                不加密                 |
+    |     Type      | Center  |             坐标加密/偏移             |
+    |:-------------:|:-------:|:-------------------------------------:|
+    |     AMap      | Lng,Lat |           gcj02(火星坐标系)           |
+    |     BMap      | Lng,Lat |   bd09(本质是在gcj02偏移之上再偏移)   |
+    |   BingMaps    | Lat,Lng |           国内数据gcj02加密           |
+    |    Google     | Lat,Lng | goole.com 无偏移; google.cn gcj02加密 |
+    |    QQMaps     | Lat,Lng |               gcj02加密               |
+    |     TMap      | Lng,Lat |              不加密(orz)              |
+    | OpenStreetMap | Lng,Lat |                不加密                 |
 
 2. 利用Openlayers JS API实现三种几何要素(点、线、多边形，可在地图显示下方点击按钮进行编辑或切换)编辑与捕捉处理。
 
