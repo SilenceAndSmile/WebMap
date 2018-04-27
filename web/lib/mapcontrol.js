@@ -14,7 +14,14 @@ MapControl = function (opts) {
         height: 240,
         center: [0, 0],
         zoom: 3,
-        backgroundMapName: "NOTHING"
+        backgroundMapName: "NOTHING",
+        keys: {
+            alibaba: "YOUR AMAP JS Key",
+            google: "YOUR GOOGLE MAP JS Key",
+            baidu: "YOUR BMAP JS Key",
+            bing: "YOUR BING MAP JS Key",
+            qq: "YOUR QQ JS Key"
+        }
     }, opts);
 
     me._init();
@@ -44,9 +51,29 @@ MapControl.prototype._init = function () {
 
     var newcenter = ol.proj.transform(me.opts.center, "EPSG:4326", "EPSG:3857");
 
+    me.draftSource = new ol.source.Vector();
+    me.draftVector = new ol.layer.Vector({
+        source: me.draftSource,
+        style: new ol.style.Style({
+            fill: new ol.style.Fill({
+                color: 'rgba(255, 255, 255, 0.2)'
+            }),
+            stroke: new ol.style.Stroke({
+                color: '#ffcc33',
+                width: 2
+            }),
+            image: new ol.style.Circle({
+                radius: 7,
+                fill: new ol.style.Fill({
+                    color: '#ffcc33'
+                })
+            })
+        })
+    });
+
     me.olmap = new ol.Map({
         layers: [
-
+            me.draftVector
         ],
         target: me.olmapEl.attr("id"),
         controls: ol.control.defaults({
@@ -60,15 +87,24 @@ MapControl.prototype._init = function () {
         }),
         interactions: [
             new ol.interaction.MouseWheelZoom({
+                //当使用触控板或者magic mouse时，在滚动事件结束后缩放至最近的整数级别，这个选项默认是关闭的
                 constrainResolution: true
             }),
             new ol.interaction.DragPan({
                 kinetic: new ol.Kinetic(0, 100000, 1000)
-            })
+//                        // 函数原型new ol.Kinetic(decay, minVelocity, delay)
+//                        //   decay: Rate of decay (must be negative). 衰减率，必须为负值，
+//                        //   minVelocity: 最小速度 (像素/毫秒),
+//                        //   delay: 延迟考虑计算动力学初始值（毫秒).
+            }),
+//            new ol.interaction.DragZoom()
         ]
     });
 
     $(".ol-attribution").remove();
+
+    me.modifyInteraction = new ol.interaction.Modify({source: me.draftSource});
+    me.olmap.addInteraction(me.modifyInteraction);
 
     me.olmap.getView().on("change", function () {
         me.updateBackgroundMap();
@@ -97,32 +133,64 @@ MapControl.prototype.setBackgroundMap = function (bkname) {
         });
         me.olmap.getLayers().push(me.backgroundMap);
     } else if (bkname === "GOOGLE_SATELLITE" || bkname === "GOOGLE_HYBRID" || bkname === "GOOGLE_ROADMAP" || bkname === "GOOGLE_TERRAIN") {
-        $.getScript("https://www.google.com/maps/api/js?key=AIzaSyAFplsFjJAIKV3qa3AgMRNopW_rduJVX38", function () {
+        if (me._googleJSReady) {
             me.initGoogleMap();
-        });
-    } else if (bkname === "AMAP") {
-        $.getScript("http://webapi.amap.com/maps?v=1.4.4&key=4aed923f0c2cba3a6d4aab8c293d7a3a", function () {
+        } else {
+            $.getScript("https://maps.googleapis.com/maps/api/js?key=" + me.opts.keys.google, function () {
+                me.initGoogleMap();
+                me._googleJSReady = true;
+            });
+        }
+    } else if (bkname === "AMAP_ROAD" || bkname === "AMAP_SATELLITE") {
+        if (me._AMapJSReady) {
             me.initAMap();
-        });
-    } else if (bkname === "BMAP") {
-        $.getScript("http://api.map.baidu.com/api?v=3.0&ak=bhaObEN4y04nOL9lBQRnWl0IKAB9a7oA&callback=__initBMap");
+        } else {
+            $.getScript("http://webapi.amap.com/maps?v=1.4.4&" + me.opts.keys.alibaba, function () {
+                me.initAMap();
+                me._AMapJSReady = true;
+            });
+        }
+    } else if (bkname === "BMAP_NORMAL" || bkname === "BMAP_SATELLITE") {
+        if (me._BMapJSReady) {
+            me.initBMap();
+        } else {
+            $.getScript("http://api.map.baidu.com/api?v=3.0&ak=" + me.opts.keys.baidu + "&callback=__initBMap");
+            me._BMapJSReady = true;
+        }
+
         window.__initBMap = function () {
             me.initBMap();
         };
-    } else if (bkname === "BINGMAPS") {
-        $.getScript("https://www.bing.com/api/maps/mapcontrol?callback=__initBingMaps");
+    } else if (bkname === "BING_AERIAL" || bkname === "BING_ROAD") {
+        if (me._BingMapJSReady) {
+            me.initBingMaps();
+        } else {
+            $.getScript("https://www.bing.com/api/maps/mapcontrol?callback=__initBingMaps");
+            me._BingMapJSReady = true;
+        }
         window.__initBingMaps = function () {
             me.initBingMaps();
         };
-    } else if (bkname === "QQMAPS") {
-        $.getScript("http://map.qq.com/api/js?v=2.exp&callback=__initQQMaps&key=2LZBZ-2ESKJ-SPSFV-K346Z-ISRME-G5BRV");
+    } else if (bkname === "QQMAPS_ROAD" || bkname === "QQMAPS_SATELLITE") {
+        if (me._QQMapJSReady) {
+            me.initQQMaps();
+        } else {
+            $.getScript("http://map.qq.com/api/js?v=2.exp&callback=__initQQMaps&key=" + me.opts.keys.qq);
+            me._QQMapJSReady = true;
+        }
+
         window.__initQQMaps = function () {
             me.initQQMaps();
-        }
-    } else if (bkname === "TMAP") {
-        $.getScript("http://api.tianditu.com/api?v=4.0", function () {
+        };
+    } else if (bkname === "TMAP_ROAD" || bkname === "TMAP_SATELLITE") {
+        if(me._TMapJSReady){
             me.initTMap();
-        })
+        } else {
+            $.getScript("http://api.tianditu.com/api?v=4.0", function () {
+                me.initTMap();
+            });
+            me._TMapJSReady = true;
+        }      
     }
 };
 
@@ -147,10 +215,15 @@ MapControl.prototype.initAMap = function () {
     var me = this;
 
     var LJCenter = LJTransform.wgs84togcj02(me.opts.center[0], me.opts.center[1]);
+    var bktype = new AMap.TileLayer();
+    if(me.opts.backgroundMapName === "AMAP_SATELLITE"){
+        bktype = new AMap.TileLayer.Satellite();
+    }
     me.bkmap = new AMap.Map(document.getElementById(me.bkmapEl.attr("id")), {
         resizeEnable: true,
         zoom: me.opts.zoom,
-        center: LJCenter
+        center: LJCenter,
+        layers: [bktype]
     });
 };
 
@@ -160,21 +233,36 @@ MapControl.prototype.initBMap = function () {
     me.bkmap = new BMap.Map(document.getElementById(me.bkmapEl.attr("id")));
     var point = new BMap.Point(LJCenter[0], LJCenter[1]);
     me.bkmap.centerAndZoom(point, me.opts.zoom);
+    var bktype = BMAP_NORMAL_MAP;
+    if(me.opts.backgroundMapName === "BMAP_SATELLITE"){
+        bktype = BMAP_SATELLITE_MAP;
+    }        
+    me.bkmap.setMapType(bktype);
 };
 
 MapControl.prototype.initBingMaps = function () {
     var me = this;
     //经测试发现Bing地图中国国内数据源采用gcj02加密，故需进行转换操作才可正常展示。
     var LJCenter = LJTransform.wgs84togcj02(me.opts.center[0], me.opts.center[1]);
+
+    var bktype = Microsoft.Maps.MapTypeId.aerial;
+    if (me.opts.backgroundMapName === "BING_ROAD") {
+        bktype = Microsoft.Maps.MapTypeId.road;
+    }
+
     me.bkmap = new Microsoft.Maps.Map(document.getElementById(me.bkmapEl.attr("id")),
             {
-                credentials: 'AuaB5JrsBeJ256gk-WZ9EXbbXprgSgSLI9N-59Juc-Fa_sjFmXG8GgT9MLPqbJjo',
+                credentials: me.opts.keys.bing,
                 center: new Microsoft.Maps.Location(LJCenter[1], LJCenter[0]),
+                mapTypeId: bktype,
                 zoom: me.opts.zoom,
                 showMapTypeSelector: false,
                 showDashboard: false,
-                showTermsLink: false,
+                showTermsLink: false
             });
+    me.bkmap.setView({
+        labelOverlay: Microsoft.Maps.LabelOverlay.hidden
+    });
 };
 
 MapControl.prototype.initGoogleMap = function () {
@@ -210,11 +298,12 @@ MapControl.prototype.initQQMaps = function () {
     me.bkmap = new qq.maps.Map(document.getElementById(me.bkmapEl.attr("id")), {
         center: new qq.maps.LatLng(LJCenter[1], LJCenter[0]),
         zoom: me.opts.zoom,
+        mapTypeId: me.opts.backgroundMapName === "QQMAPS_ROAD" ? qq.maps.MapTypeId.ROADMAP : qq.maps.MapTypeId.SATELLITE,
         mapTypeControl: false,
         panControl: false,
         zoomControl: false
     });
-}
+};
 
 MapControl.prototype.initTMap = function () {
     var me = this;
@@ -226,29 +315,35 @@ MapControl.prototype.initTMap = function () {
 //        center: new T.LngLat(me.opts.center[0], me.opts.center[1]),
 //        zoom: me.opts.zoom
 //    });
-}
+    if(me.opts.backgroundMapName === "TMAP_SATELLITE"){
+        me.bkmap.setMapType(TMAP_SATELLITE_MAP);
+    }
+};
 
 MapControl.prototype.updateBackgroundMap = function () {
     var me = this;
     var bkname = me.opts.backgroundMapName;
     me.opts.center = ol.proj.transform(me.getCenter(), "EPSG:3857", "EPSG:4326");
     me.opts.zoom = me.getZoom();
+    if (me.opts.zoom % 1 !== 0) {
+        return;
+    }
 
     if (bkname === "NOTHING") {
 
     } else if (bkname === "OSM") {
         me.updateOSMMap();
-    } else if (bkname === "GOOGLE_SATELLITE" || bkname === "GOOGLE_HYBID" || bkname === "GOOGLE_ROADMAP" || bkname === "GOOGLE_TERRAIN") {
+    } else if (bkname === "GOOGLE_SATELLITE" || bkname === "GOOGLE_HYBRID" || bkname === "GOOGLE_ROADMAP" || bkname === "GOOGLE_TERRAIN") {
         me.updateGoogleMap();
-    } else if (bkname === "AMAP") {
+    } else if (bkname === "AMAP_ROAD" || bkname === "AMAP_SATELLITE") {
         me.updateAMap();
-    } else if (bkname === "BMAP") {
+    } else if (bkname === "BMAP_NORMAL" || bkname === "BMAP_SATELLITE") {
         me.updateBMap();
-    } else if (bkname === "BINGMAPS") {
+    } else if (bkname === "BING_AERIAL" || bkname === "BING_ROAD") {
         me.updateBingMaps();
-    } else if (bkname === "QQMAPS") {
+    } else if (bkname === "QQMAPS_ROAD" || bkname === "QQMAPS_SATELLITE") {
         me.updateQQMaps();
-    } else if (bkname === "TMAP") {
+    } else if (bkname === "TMAP_ROAD" || bkname === "TMAP_SATELLITE") {
         me.updateTMap();
     }
 };
@@ -287,6 +382,7 @@ MapControl.prototype.updateBingMaps = function () {
     var Center = ol.proj.transform(v.getCenter(), "EPSG:3857", "EPSG:4326");
     var LJCenter = LJTransform.wgs84togcj02(Center[0], Center[1]);
     me.bkmap.setView({
+        labelOverlay: Microsoft.Maps.LabelOverlay.hidden,
         center: new Microsoft.Maps.Location(LJCenter[1], LJCenter[0]),
         zoom: v.getZoom()
     });
@@ -297,6 +393,8 @@ MapControl.prototype.updateOSMMap = function () {
 
 MapControl.prototype.updateGoogleMap = function () {
     var me = this;
+    var z = me.getZoom();
+
     var mycenter = me.getCenter();
     mycenter = ol.proj.transform(mycenter, "EPSG:3857", "EPSG:4326");
     me.bkmap.setOptions({
@@ -317,12 +415,40 @@ MapControl.prototype.updateQQMaps = function () {
         center: new qq.maps.LatLng(LJCenter[1], LJCenter[0]),
         zoom: v.getZoom()
     });
-}
+};
 
 MapControl.prototype.updateTMap = function () {
     var me = this;
     var v = me.olmap.getView();
     var LJCenter = ol.proj.transform(v.getCenter(), "EPSG:3857", "EPSG:4326");
     me.bkmap.centerAndZoom(new T.LngLat(LJCenter[0], LJCenter[1]), v.getZoom());
-}
+};
 
+MapControl.prototype.getBackgroundMapName = function () {
+    var me = this;
+    return me.opts.backgroundMapName;
+};
+
+MapControl.prototype.setDrawOperation = function (drawtype) {
+    var me = this;
+
+    me.removeDrawInteraction();
+    me.currentDrawInteraction = new ol.interaction.Draw({
+        source: me.draftSource,
+        type: drawtype
+    });
+    me.olmap.addInteraction(me.currentDrawInteraction);
+    me.snapInteraction = new ol.interaction.Snap({source: me.draftSource});
+    me.olmap.addInteraction(me.snapInteraction);
+
+};
+
+MapControl.prototype.removeDrawInteraction = function () {
+    var me = this;
+    if (me.currentDrawInteraction) {
+        me.olmap.removeInteraction(me.currentDrawInteraction);
+    }
+    if (me.snapInteraction) {
+        me.olmap.removeInteraction(me.snapInteraction);
+    }
+};
