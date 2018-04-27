@@ -16,11 +16,11 @@ MapControl = function (opts) {
         zoom: 3,
         backgroundMapName: "NOTHING",
         keys: {
-            alibaba: "YOUR AMAP JS Key",
-            google: "YOUR GOOGLE MAP JS Key",
-            baidu: "YOUR BMAP JS Key",
-            bing: "YOUR BING MAP JS Key",
-            qq: "YOUR QQ JS Key"
+            alibaba: "Your AMap JS Key",
+            google: "Your Google Map JS Key",
+            baidu: "Your BMap JS Key",
+            bing: "Your Bing Map JS Key",
+            qq: "Your QQ Map JS Key"
         }
     }, opts);
 
