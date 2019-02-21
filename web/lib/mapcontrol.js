@@ -20,7 +20,8 @@ MapControl = function (opts) {
             google: "Your Google Map JS Key",
             baidu: "Your BMap JS Key",
             bing: "Your Bing Map JS Key",
-            qq: "Your QQ Map JS Key"
+            qq: "Your QQ Map JS Key",
+            tdt: "Your TianDiTu JS Key"
         }
     }, opts);
 
@@ -131,7 +132,8 @@ MapControl.prototype.setBackgroundMap = function (bkname) {
         me.backgroundMap = new ol.layer.Tile({
             source: new ol.source.OSM()
         });
-        me.olmap.getLayers().push(me.backgroundMap);
+//        me.olmap.getLayers().push(me.backgroundMap);
+        me.olmap.getLayers().insertAt(0, me.backgroundMap);
     } else if (bkname === "GOOGLE_SATELLITE" || bkname === "GOOGLE_HYBRID" || bkname === "GOOGLE_ROADMAP" || bkname === "GOOGLE_TERRAIN") {
         if (me._googleJSReady) {
             me.initGoogleMap();
@@ -186,7 +188,7 @@ MapControl.prototype.setBackgroundMap = function (bkname) {
         if(me._TMapJSReady){
             me.initTMap();
         } else {
-            $.getScript("http://api.tianditu.com/api?v=4.0", function () {
+            $.getScript("http://api.tianditu.com/api?v=4.0&tk=" + me.opts.keys.tdt, function () {
                 me.initTMap();
             });
             me._TMapJSReady = true;
@@ -440,7 +442,8 @@ MapControl.prototype.setDrawOperation = function (drawtype) {
     me.olmap.addInteraction(me.currentDrawInteraction);
     me.snapInteraction = new ol.interaction.Snap({source: me.draftSource});
     me.olmap.addInteraction(me.snapInteraction);
-
+    
+    $("#stopdraw").show();
 };
 
 MapControl.prototype.removeDrawInteraction = function () {
@@ -451,4 +454,11 @@ MapControl.prototype.removeDrawInteraction = function () {
     if (me.snapInteraction) {
         me.olmap.removeInteraction(me.snapInteraction);
     }
+};
+
+MapControl.prototype.stopDraw = function () {
+    let me = this;
+    
+    me.removeDrawInteraction();
+    $("#stopdraw").hide();
 };

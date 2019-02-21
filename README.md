@@ -27,11 +27,12 @@
     ```html
     center: [Your Longitude, Your Latitude],
     ```
-    + web/lib/mapcontrol.js第19至23行(如下所示代码片段)中的各个参数值替换为自己真实申请的JS API的开发人员密钥key。
+    + web/lib/mapcontrol.js第19至24行(如下所示代码片段)中的各个参数值替换为自己真实申请的JS API的开发人员密钥key。
     ```javascript
     alibaba: "Your AMap JS Key",
     google: "Your Google Map JS Key",
     baidu: "Your BMap JS Key",
     bing: "Your Bing Map JS Key",
-    qq: "Your QQ Map JS Key"
+    qq: "Your QQ Map JS Key",
+    tdt: "Your TianDiTu JS Key"
     ```   
